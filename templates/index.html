@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentimental Analysis ✨</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles for the body and animated gradient background */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Keyframe animation for the background gradient */
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Style for the result display to have a smooth transition */
+        #result-container {
+            transition: all 0.3s ease-in-out;
+            transform: scale(0.95);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Main container with modern styling -->
+    <div class="container bg-white/30 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-lg w-full mx-4">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white">Sentiment Analyzer</h2>
+            <p class="text-white/80 mt-2">Enter a sentence and we'll predict its emotion.</p>
+        </div>
+
+        <!-- Form for user input -->
+        <form id="sentiment-form">
+            <div class="relative">
+                <!-- Text input with icon -->
+                <input type="text" id="text-input" name="text" placeholder="Type something amazing..." required
+                       class="w-full pl-4 pr-12 py-3 bg-white/50 text-gray-900 placeholder-gray-500 border-2 border-transparent focus:border-purple-500 focus:ring-0 rounded-xl transition duration-300 shadow-md focus:shadow-lg">
+                <!-- Submit button with icon -->
+                <button type="submit" 
+                        class="absolute inset-y-0 right-0 flex items-center justify-center w-12 h-full text-purple-500 hover:text-white bg-purple-200 hover:bg-purple-600 rounded-r-xl transition-all duration-300 transform hover:scale-110">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <!-- Container for displaying the result -->
+        <div id="result-container" class="mt-6 p-5 rounded-xl text-center text-lg font-semibold hidden">
+            <!-- Content will be injected by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const sentimentForm = document.getElementById('sentiment-form');
+        const textInput = document.getElementById('text-input');
+        const resultContainer = document.getElementById('result-container');
+
+        // --- Event Listener for Form Submission ---
+        sentimentForm.addEventListener('submit', function(event) {
+            // Prevent the default form submission which reloads the page
+            event.preventDefault();
+
+            // Get the text from the input field
+            const textToAnalyze = textInput.value;
+            
+            // Show a loading state (optional)
+            showLoading();
+
+            // Simulate an API call with a timeout
+            setTimeout(() => {
+                // In a real app, you would make a fetch request to your backend here.
+                // For this demo, we'll just pick a random sentiment.
+                const sentiments = [
+                    { label: 'Positive', emoji: '😊', bg: 'bg-green-100', text: 'text-green-800' },
+                    { label: 'Negative', emoji: '😠', bg: 'bg-red-100', text: 'text-red-800' },
+                    //{ label: 'Neutral', emoji: '😐', bg: 'bg-blue-100', text: 'text-blue-800' }
+                ];
+                const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+
+                // Display the result
+                displaySentiment(randomSentiment);
+
+            }, 1000); // 1-second delay to simulate analysis
+        });
+
+        /**
+         * Shows a loading message in the result container.
+         */
+        function showLoading() {
+            resultContainer.classList.remove('hidden');
+            resultContainer.className = 'mt-6 p-5 rounded-xl text-center text-lg font-semibold bg-gray-100 text-gray-600';
+            resultContainer.innerHTML = 'Analyzing...';
+            resultContainer.style.opacity = '1';
+            resultContainer.style.transform = 'scale(1)';
+        }
+
+        /**
+         * Displays the predicted sentiment in the result container.
+         * @param {object} sentiment - The sentiment object with label, emoji, and style classes.
+         */
+        function displaySentiment(sentiment) {
+            // Update classes for color and background
+            resultContainer.className = `mt-6 p-5 rounded-xl text-center text-lg font-semibold ${sentiment.bg} ${sentiment.text}`;
+            
+            // Set the content
+            resultContainer.innerHTML = `
+                <span>Predicted Sentiment: </span>
+                <strong class="font-bold">${sentiment.label} ${sentiment.emoji}</strong>
+            `;
+
+            // Ensure it's visible with the final styles
+            resultContainer.classList.remove('hidden');
+            resultContainer.style.opacity = '1';
+            resultContainer.style.transform = 'scale(1)';
+        }
+    </script>
+
+</body>
+</html>
