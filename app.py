@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template
 import tensorflow as tf
-from tensorflow.keras.preprocessing.sequence import pad_sequences # type: ignore
+from tensorflow.keras.preprocessing.sequence import pad_sequences # type:ignore
 import pickle
 import numpy as np
 import os
@@ -14,12 +14,12 @@ model = tf.keras.models.load_model("sentiment_model.h5")
 with open("tokenizer.pkl", "rb") as f:
     tokenizer = pickle.load(f)
 
-# Load label encoder (as a dictionary)
+# Load label encoder classes (just the list of classes)
 with open("label_encoder.pkl", "rb") as f:
-    label_encoder = pickle.load(f)
+    label_classes = pickle.load(f)
 
-# Reverse the label encoder if needed (index to label)
-index_to_label = dict(enumerate(label_encoder))
+# Convert index to label
+index_to_label = dict(enumerate(label_classes.classes_))
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -34,10 +34,16 @@ def home():
             padded = pad_sequences(sequence, maxlen=200)
 
             # Predict
+            # Load the actual LabelEncoder object
+            with open("label_encoder.pkl", "rb") as f:
+                label_encoder = pickle.load(f)
+
+# Predict sentiment
             probs = model.predict(padded)[0]
             predicted_index = int(np.argmax(probs))
-            sentiment = index_to_label[predicted_index]
-            probabilities = {index_to_label[i]: f"{p*100:.2f}%" for i, p in enumerate(probs)}
+            sentiment = label_encoder.inverse_transform([predicted_index])[0]
+            probabilities = {label_encoder.inverse_transform([i])[0]: f"{p*100:.2f}%" for i, p in enumerate(probs)}
+
 
     return render_template("index.html", sentiment=sentiment, probabilities=probabilities)
 

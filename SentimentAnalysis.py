@@ -1,54 +1,122 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report
-import nltk
-import re
+# import pandas as pd
+# from sklearn.model_selection import train_test_split
+# from sklearn.feature_extraction.text import TfidfVectorizer
+# from sklearn.linear_model import LogisticRegression
+# from sklearn.pipeline import Pipeline
+# from sklearn.metrics import classification_report
+# import nltk
+# import re
+# import joblib
 
-# Optional: only needed once
-nltk.download('punkt')
-from nltk.tokenize import word_tokenize
+
+# # Optional: only needed once
+# nltk.download('punkt')
+# from nltk.tokenize import word_tokenize
+
+# # Tokenizer
+# def tokenize(text):
+#     return word_tokenize(text)
+
+# # Load training data
+# train_df = pd.read_csv("train5(1).csv")
+# train_df = train_df.dropna(subset=['tweet', 'label'])
+# train_df['label'] = train_df['label'].astype(int)
+# X = train_df['tweet']
+# y = train_df['label']
+
+# # Train-validation split
+# X_train, X_val, y_train, y_val = train_test_split(
+#     X, y, test_size=0.2, random_state=42
+# )
+
+# # Model pipeline
+# model = Pipeline([
+#     ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words='english')),
+#     ('clf', LogisticRegression(max_iter=1000))
+# ])
+
+# # Train model
+# model.fit(X_train, y_train)
+
+# # Evaluate
+# y_pred = model.predict(X_val)
+# print(classification_report(y_val, y_pred, labels=[-1, 1], target_names=['Negative', 'Positive']))
+
+# # Load test data
+# test_df = pd.read_csv("test5.csv")
+# test_df = test_df.dropna(subset=['tweet'])
+
+# # Predict on test data
+# test_df['predicted_label'] = model.predict(test_df['tweet'])
+
+# # Save to file
+# test_df.to_csv("test_with_predictions.csv", index=False)
+# print("✅ Test predictions saved to test_with_predictions.csv")
+
+# print(train_df['label'].value_counts())
+
+
+# joblib.dump(model, "sentiment_pipeline.pkl")
+# print("✅ Model pipeline saved to sentiment_pipeline.pkl")
+
+
+
+import pandas as pd
+import numpy as np
+import pickle
+from tensorflow.keras.preprocessing.text import Tokenizer  #type:ignore
+from tensorflow.keras.preprocessing.sequence import pad_sequences # type: ignore
+from tensorflow.keras.models import Sequential      # type: ignore
+from tensorflow.keras.layers import Embedding, LSTM, Dense  # type: ignore
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+# Load updated dataset
+df = pd.read_csv("train5(1).csv")
+texts = df["tweet"]
+labels = df["label"]
+
+# Encode labels
+le = LabelEncoder()
+labels_encoded = le.fit_transform(labels)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(texts, labels_encoded, test_size=0.2, random_state=42)
 
 # Tokenizer
-def tokenize(text):
-    return word_tokenize(text)
+tokenizer = Tokenizer(num_words=10000, oov_token="<OOV>")
+tokenizer.fit_on_texts(X_train)
 
-# Load training data
-train_df = pd.read_csv("train5(1).csv")
-train_df = train_df.dropna(subset=['tweet', 'label'])
-train_df['label'] = train_df['label'].astype(int)
-X = train_df['tweet']
-y = train_df['label']
+X_train_seq = tokenizer.texts_to_sequences(X_train)
+X_test_seq = tokenizer.texts_to_sequences(X_test)
 
-# Train-validation split
-X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+X_train_pad = pad_sequences(X_train_seq, maxlen=200)
+X_test_pad = pad_sequences(X_test_seq, maxlen=200)
 
-# Model pipeline
-model = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words='english')),
-    ('clf', LogisticRegression(max_iter=1000))
+# Model
+model = Sequential([
+    Embedding(input_dim=10000, output_dim=64, input_length=200),
+    LSTM(64),
+    Dense(len(np.unique(y_train)), activation='softmax')  # Handles multi-class too
 ])
+model.compile(loss="sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+model.fit(X_train_pad, y_train, epochs=5, validation_split=0.1)
 
-# Train model
-model.fit(X_train, y_train)
+# Evaluate on test set
+loss, accuracy = model.evaluate(X_test_pad, y_test)
+print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-# Evaluate
-y_pred = model.predict(X_val)
-print(classification_report(y_val, y_pred, labels=[-1, 1], target_names=['Negative', 'Positive']))
+# Optional: Classification report
+y_pred_probs = model.predict(X_test_pad)
+y_pred = np.argmax(y_pred_probs, axis=1)
+print(classification_report(y_test, y_pred, target_names=["negative", "positive"]))
 
-# Load test data
-test_df = pd.read_csv("test5.csv")
-test_df = test_df.dropna(subset=['tweet'])
+# Save model and objects
+model.save("sentiment_model.h5")
 
-# Predict on test data
-test_df['predicted_label'] = model.predict(test_df['tweet'])
+with open("tokenizer.pkl", "wb") as f:
+    pickle.dump(tokenizer, f)
 
-# Save to file
-test_df.to_csv("test_with_predictions.csv", index=False)
-print("✅ Test predictions saved to test_with_predictions.csv")
-
-print(train_df['label'].value_counts())
+with open("label_encoder.pkl", "wb") as f:
+    pickle.dump(le, f)
